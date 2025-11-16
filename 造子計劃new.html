@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>A_BABY_ 互動介面（新版）</title>
+<style>
+  :root{
+    --ink:#000; --ink-2:#545454;
+    --white:#fff; --panel:rgba(255,255,255,.5);
+    --btn:#6f8fa8; --btn-h:#88a6bd;
+    --danger:#E53935; --danger-h:#ff5a55;
+    --chip:#e9eef2; --chip-b:#222; --chip-on:#6f8fa8; --chip-on-b:#1b2a35;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:system-ui,-apple-system,"Noto Sans TC",Segoe UI,Roboto,Helvetica,Arial;background:#0f1114}
+  .app{min-height:100dvh;display:flex;align-items:center;justify-content:center}
+  /* 每一幕 */
+  .stage{
+    display:none; width:100%; height:100vh; position:relative;
+    background-size:cover; background-position:center center;
+  }
+  .stage.active{display:block; animation:fade .35s ease}
+  @keyframes fade{from{opacity:.001; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+  /* 背景分配 */
+  .bg-1{ background-image:url("圖一.png"); }
+  .bg-2{ background-image:url("圖二.png"); }
+  .bg-3{ background-image:url("圖三.png"); }
+
+  /* 半透明白色氣泡框：除第1頁外都有 */
+  .bubble{
+    position:absolute; left:50%; top:50%;
+    transform:translate(-50%,-50%);
+    width:min(1100px,86vw); height:min(620px,78vh);
+    background:var(--panel); border-radius:24px;
+    padding:24px; display:flex; flex-direction:column; justify-content:flex-start;
+    backdrop-filter: blur(2px);
+    box-shadow:0 10px 40px rgba(0,0,0,.18);
+  }
+
+  /* 置中內容輔助 */
+  .center{display:flex; align-items:center; justify-content:center; text-align:center}
+  .stack{display:flex; flex-direction:column; gap:14px}
+  .spacer{height:14px}
+  .grow{flex:1}
+
+  /* 文字樣式 */
+  h1,h2,p{margin:0}
+  .t-title{font-size:36px; font-weight:900; color:var(--ink); letter-spacing:.5px}
+  .t-sub{font-size:24px; color:var(--ink-2)}
+  .t-big-white-glow{
+    font-size:36px; font-weight:900; color:#fff;
+    text-shadow:0 0 6px rgba(0,0,0,.55);
+  }
+  .t-center{ text-align:center }
+
+  /* 成功頁主標（白字黑暈） */
+  .success-title{
+    font-size:36px; font-weight:900; color:#fff;
+    text-shadow:0 0 6px rgba(0,0,0,.6);
+  }
+
+  /* 警告頁紅暈文字 */
+  .warn-title{
+    font-size:48px; font-weight:900; color:#fff;
+    text-shadow:0 0 8px rgba(255,0,0,.75);
+  }
+  .warn-sub{
+    font-size:24px; font-weight:700; color:#fff;
+    text-shadow:0 0 6px rgba(255,0,0,.5);
+  }
+
+  /* 按鈕 */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:10px;
+    padding:14px 22px; border-radius:12px; border:none; cursor:pointer;
+    background:var(--btn); color:#fff; font-weight:800; letter-spacing:.6px; font-size:20px;
+    box-shadow:0 6px 18px rgba(0,0,0,.18);
+  }
+  .btn:hover{ background:var(--btn-h) }
+  .btn-danger{ background:var(--danger) }
+  .btn-danger:hover{ background:var(--danger-h) }
+
+  /* 單選/多選按鈕群 */
+  .options{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:14px 0 10px}
+  .opt{
+    background:var(--chip); border:2px solid var(--chip-b); color:#111; border-radius:12px;
+    padding:14px 10px; text-align:center; font-weight:900; font-size:24px; cursor:pointer;
+    user-select:none;
+  }
+  .opt.sel{
+    background:linear-gradient(180deg,#bcd6e3,#89a7bb); color:#fff;
+    border-color:var(--chip-on-b); box-shadow:0 0 0 3px rgba(111,143,168,.25) inset;
+  }
+
+  /* 單行狀態條 */
+  .status{
+    margin-top:8px; padding:10px 14px; background:rgba(255,255,255,.6);
+    border:2px solid #a9b5c1; border-radius:12px; font-weight:800; color:#3b4a58;
+    text-align:center; font-size:18px;
+  }
+
+  /* range 與兩端標籤 —— ★半邊著色（#6f8fa8） */
+  .range-row{ margin:16px 0 6px }
+  .range-wrap{ display:flex; align-items:center; gap:12px }
+  .range-wrap .end{ width:56px; text-align:center; font-weight:900; color:#111 }
+  input[type="range"]{
+    -webkit-appearance:none; appearance:none; width:100%; height:8px; border-radius:999px;
+    background:linear-gradient(90deg,var(--btn) 50%, #cfd8dc 50%); /* 初始50% */
+    outline:none; border:1px solid rgba(0,0,0,.15);
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:18px; height:18px; border-radius:50%;
+    background:#1b2a35; box-shadow:0 0 0 3px rgba(111,143,168,.35);
+    cursor:pointer;
+  }
+
+  /* 照片單選（健康） */
+  .pics{display:grid; grid-template-columns:repeat(5,1fr); gap:14px; margin:14px 0 10px}
+  .photo{
+    border:3px solid #222; border-radius:12px; overflow:hidden; background:#fff; cursor:pointer;
+  }
+  .photo img{ display:block; width:100%; height:100%; object-fit:cover }
+  .photo.sel{ border-color:#6f8fa8; box-shadow:0 0 0 4px rgba(111,143,168,.25) inset }
+
+  /* loading 旋轉 */
+  .loading{ width:48px; height:48px; border:6px solid rgba(255,255,255,.6);
+    border-top-color:#6f8fa8; border-radius:50%; animation:spin 1s linear infinite; margin:12px auto 0}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* 第1頁的開始鍵（無氣泡） —— ★下移兩行的距離 */
+  .start-wrap{
+    position:absolute; left:50%; top:66%; transform:translate(-50%,-50%); text-align:center;
+  }
+  .start-btn{ font-size:24px; background:rgba(255,255,255,.22); border:2px solid rgba(255,255,255,.6); }
+  .start-btn:hover{ background:rgba(255,255,255,.45) }
+
+  /* 底部置中 CTA */
+  .cta{ position:absolute; left:50%; bottom:28px; transform:translateX(-50%); }
+
+  /* 小提示 */
+  .msg{
+    position:absolute; left:50%; bottom:96px; transform:translateX(-50%);
+    background:rgba(44,52,64,.92); color:#fff; border-radius:999px; padding:8px 14px; font-size:14px; display:none;
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- s1 首頁 / 背景：圖一 -->
+  <section id="s1" class="stage active bg-1">
+    <div class="start-wrap">
+      <button class="btn start-btn" onclick="go(2)">開始製作</button>
+    </div>
+  </section>
+
+  <!-- s2 說明 / 背景：圖二（依你現有檔案不改動） -->
+  <section id="s2" class="stage bg-2">
+    <div class="bubble center">
+      <div class="stack">
+        <div class="spacer"></div>
+        <div class="t-big-white-glow t-center">「你／妳也想要一個完美的下一代嗎？」</div>
+        <div class="t-big-white-glow t-center">「參與我們的計劃，你／妳可以創造出自己最滿意的孩子。」</div>
+        <div class="grow"></div>
+        <div class="cta"><button class="btn" onclick="go(3)">下一步</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s3 IQ / 背景：圖二 -->
+  <section id="s3" class="stage bg-2">
+    <div class="bubble">
+      <div class="stack">
+        <h2 class="t-title">請選擇您孩子的 IQ</h2>
+        <p class="t-sub">：分數高才是好孩子</p>
+
+        <div id="iqOpts" class="options">
+          <div class="opt" data-v="100-150">100–150</div>
+          <div class="opt" data-v="150-200">150–200</div>
+          <div class="opt" data-v="200-250">200–250</div>
+          <div class="opt" data-v="250-300">250–300</div>
+        </div>
+
+        <div id="iqStat" class="status">已選：尚未選擇</div>
+        <div class="grow"></div>
+        <div class="cta"><button class="btn" onclick="nextIQ()">下一步</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s4 天份 / 背景：圖二 -->
+  <section id="s4" class="stage bg-2">
+    <div class="bubble">
+      <div class="stack">
+        <h2 class="t-title">請選擇您孩子的天份</h2>
+        <p class="t-sub">：才藝是簡歷上的裝飾</p>
+
+        <div id="talentOpts" class="options">
+          <div class="opt" data-k="音樂">音樂</div>
+          <div class="opt" data-k="邏輯">邏輯</div>
+          <div class="opt" data-k="數字">數字</div>
+          <div class="opt" data-k="體育">體育</div>
+          <div class="opt" data-k="藝術">藝術</div>
+          <div class="opt" data-k="運動">運動</div>
+          <div class="opt" data-k="語言">語言</div>
+          <div class="opt" data-k="社交">社交</div>
+        </div>
+
+        <div id="talentStat" class="status">已選：0/8</div>
+        <div class="grow"></div>
+        <div class="cta"><button class="btn" onclick="nextTalent()">下一步</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s5 樣貌 / 背景：圖二 -->
+  <section id="s5" class="stage bg-2">
+    <div class="bubble">
+      <div class="stack">
+        <h2 class="t-title">請選擇您孩子的樣貌</h2>
+        <p class="t-sub">：顏值即正義</p>
+
+        <div class="range-row">
+          <div class="range-wrap">
+            <div class="end">醜</div>
+            <input id="rBeauty" type="range" min="0" max="100" value="50">
+            <div class="end">美</div>
+          </div>
+        </div>
+        <div class="range-row">
+          <div class="range-wrap">
+            <div class="end">矮</div>
+            <input id="rHeight" type="range" min="0" max="100" value="50">
+            <div class="end">高</div>
+          </div>
+        </div>
+        <div class="range-row">
+          <div class="range-wrap">
+            <div class="end">胖</div>
+            <input id="rWeight" type="range" min="0" max="100" value="50">
+            <div class="end">瘦</div>
+          </div>
+        </div>
+
+        <div class="grow"></div>
+        <div class="cta"><button class="btn" onclick="fusionThen(6,3)">下一步</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s6 健康 / 背景：圖二 -->
+  <section id="s6" class="stage bg-2">
+    <div class="bubble">
+      <div class="stack">
+        <h2 class="t-title">請選擇您孩子的健康程度</h2>
+        <p class="t-sub">：沒有它，一切歸零</p>
+
+        <div id="healthPics" class="pics">
+          <div class="photo" data-h="優"><img src="健康程度1.png" alt=""></div>
+          <div class="photo" data-h="中上"><img src="健康程度2.png" alt=""></div>
+          <div class="photo" data-h="普通"><img src="健康程度3.png" alt=""></div>
+          <div class="photo" data-h="中下"><img src="健康程度4.png" alt=""></div>
+          <div class="photo" data-h="差"><img src="健康程度5.png" alt=""></div>
+        </div>
+
+        <div id="healthStat" class="status">已選：尚未選擇</div>
+        <div class="grow"></div>
+        <div class="cta"><button class="btn" onclick="nextHealth()">下一步</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s7 情緒 / 背景：圖二 -->
+  <section id="s7" class="stage bg-2">
+    <div class="bubble">
+      <div class="stack">
+        <h2 class="t-title">需要過濾情緒基因嗎？</h2>
+        <p class="t-sub">：你就是太敏感了，別想太多</p>
+
+        <div id="emotionOpts" class="options" style="grid-template-columns:repeat(2,1fr)">
+          <div class="opt" data-v="Yes">Yes</div>
+          <div class="opt" data-v="No">No</div>
+        </div>
+        <div id="emotionStat" class="status">已選：尚未選擇</div>
+
+        <div class="grow"></div>
+        <div class="cta"><button class="btn" onclick="nextEmotion()">下一步</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s8 請稍候 / 背景：圖二 -->
+  <section id="s8" class="stage bg-2">
+    <div class="bubble center">
+      <div class="stack t-center">
+        <h2 class="t-title">請稍候…</h2>
+        <p class="t-sub">正在為您製作中…</p>
+        <div class="loading"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s9 融合中（共用）/ 背景：圖二 -->
+  <section id="s9" class="stage bg-2">
+    <div class="bubble center">
+      <div class="stack t-center">
+        <h2 class="t-title">融合中…</h2>
+        <div class="loading"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s10 成功 / 背景：圖二 -->
+  <section id="s10" class="stage bg-2">
+    <div class="bubble center">
+      <div class="stack t-center">
+        <div class="success-title">恭喜您的造子計劃成功！</div>
+        <div class="spacer"></div>
+        <div class="cta"><button class="btn" onclick="go(11)">領取樣本罐</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- s11 警告 / 背景：圖三 -->
+  <section id="s11" class="stage bg-3">
+    <div class="bubble center">
+      <div class="stack t-center">
+        <div class="warn-title">⚠ 警告：後果自負 ⚠</div>
+        <div class="warn-sub">完美只是一瞬，未來無法掌控。</div>
+        <div class="spacer"></div>
+        <!-- ★完整重置並回首頁 -->
+        <div class="cta"><button class="btn btn-danger" onclick="resetAll(); go(1)">結束</button></div>
+      </div>
+    </div>
+  </section>
+
+  <div id="msg" class="msg"></div>
+</div>
+
+<script>
+  /* ====== 視圖切換 ====== */
+  let cur = 1, timer = null;
+  function show(id){
+    if(timer){ clearTimeout(timer); timer=null; }
+    document.querySelectorAll('.stage').forEach(s=>s.classList.remove('active'));
+    document.getElementById('s'+id).classList.add('active');
+    cur = id;
+  }
+  function go(id){ show(id); onEnter(id); }
+
+  function onEnter(id){
+    if(id===8){ // 請稍候頁：10秒後進成功
+      timer = setTimeout(()=>go(10), 10000);
+    }
+  }
+
+  function toast(t,ms=1800){
+    const m = document.getElementById('msg');
+    m.textContent = t; m.style.display='block';
+    setTimeout(()=>m.style.display='none', ms);
+  }
+
+  /* ====== 狀態 ====== */
+  const state = {
+    IQ:null, talents:new Set(),
+    looks:{beauty:50,height:50,weight:50},
+    health:null, emotion:null
+  };
+
+  /* ====== 樣貌滑桿：半邊著色隨動 ====== */
+  function paintRange(r){
+    const min = +r.min || 0, max = +r.max || 100;
+    const val = ((+r.value - min) / (max - min)) * 100;
+    r.style.background = `linear-gradient(90deg, var(--btn) ${val}%, #cfd8dc ${val}%)`;
+  }
+  function bindRange(id, key){
+    const el = document.getElementById(id);
+    if(!el) return;
+    paintRange(el);
+    el.addEventListener('input', e=>{
+      const v = +e.target.value;
+      state.looks[key] = v;
+      paintRange(e.target);
+    });
+  }
+  bindRange('rBeauty','beauty');
+  bindRange('rHeight','height');
+  bindRange('rWeight','weight');
+
+  /* ====== 元件互動：單選/多選 ====== */
+  // IQ 單選
+  (function(){
+    const box = document.getElementById('iqOpts');
+    box.addEventListener('click', e=>{
+      const item = e.target.closest('.opt'); if(!item) return;
+      box.querySelectorAll('.opt').forEach(n=>n.classList.remove('sel'));
+      item.classList.add('sel');
+      state.IQ = item.dataset.v;
+      document.getElementById('iqStat').textContent = '已選：' + state.IQ;
+    });
+  })();
+
+  // 天份多選
+  (function(){
+    const box = document.getElementById('talentOpts');
+    box.addEventListener('click', e=>{
+      const item = e.target.closest('.opt'); if(!item) return;
+      item.classList.toggle('sel');
+      const k = item.dataset.k;
+      if(item.classList.contains('sel')) state.talents.add(k);
+      else state.talents.delete(k);
+      document.getElementById('talentStat').textContent = '已選：' + state.talents.size + '/8';
+    });
+  })();
+
+  // 健康單選(圖片)
+  (function(){
+    const box = document.getElementById('healthPics');
+    box.addEventListener('click', e=>{
+      const ph = e.target.closest('.photo'); if(!ph) return;
+      box.querySelectorAll('.photo').forEach(p=>p.classList.remove('sel'));
+      ph.classList.add('sel');
+      state.health = ph.dataset.h;
+      document.getElementById('healthStat').textContent = '已選：' + state.health;
+    });
+  })();
+
+  // 情緒單選
+  (function(){
+    const box = document.getElementById('emotionOpts');
+    box.addEventListener('click', e=>{
+      const item = e.target.closest('.opt'); if(!item) return;
+      box.querySelectorAll('.opt').forEach(n=>n.classList.remove('sel'));
+      item.classList.add('sel');
+      state.emotion = item.dataset.v;
+      document.getElementById('emotionStat').textContent = '已選：' + state.emotion;
+    });
+  })();
+
+  /* ====== 與 ESP32 溝通（保持原設定） ====== */
+  const RELAY_BASE = 'http://172.20.10.2';
+  async function triggerRelay(id, ms=10000){
+    try{
+      await fetch(`${RELAY_BASE}/relay?id=${id}&ms=${ms}`, {method:'GET'});
+    }catch(e){
+      console.warn('無法連線 ESP32：', e);
+    }
+  }
+  function fusionThen(nextId, relayId, ms=10000){
+    show(9); // 融合中
+    triggerRelay(relayId, ms);
+    timer = setTimeout(()=>go(nextId), ms);
+  }
+
+  /* ====== 流程按鈕動作（原邏輯） ====== */
+  function nextIQ(){
+    if(!state.IQ){ toast('請先選擇 IQ'); return; }
+    fusionThen(4, 1, 10000);
+  }
+  function nextTalent(){
+    if(state.talents.size===0){ toast('請至少選擇 1 項天份'); return; }
+    fusionThen(5, 2, 10000);
+  }
+  function nextHealth(){
+    if(!state.health){ toast('請先選擇 健康程度'); return; }
+    fusionThen(7, 4, 10000);
+  }
+  function nextEmotion(){
+    if(!state.emotion){ toast('請先選擇 是否過濾情緒基因'); return; }
+    triggerRelay(5, 10000); // 觸發第5顆
+    go(8);                 // 進「請稍候」
+  }
+
+  /* ====== ★完整重置（供「結束」使用） ====== */
+  function resetAll(){
+    state.IQ=null; state.talents.clear();
+    state.looks={beauty:50,height:50,weight:50};
+    state.health=null; state.emotion=null;
+
+    // 清除 UI 選取
+    ['iqOpts','talentOpts','healthPics','emotionOpts'].forEach(id=>{
+      const box=document.getElementById(id);
+      if(!box) return;
+      box.querySelectorAll('.sel').forEach(n=>n.classList.remove('sel'));
+    });
+    // 狀態提示
+    const iqStat=document.getElementById('iqStat'); if(iqStat) iqStat.textContent='已選：尚未選擇';
+    const tStat=document.getElementById('talentStat'); if(tStat) tStat.textContent='已選：0/8';
+    const hStat=document.getElementById('healthStat'); if(hStat) hStat.textContent='已選：尚未選擇';
+    const eStat=document.getElementById('emotionStat'); if(eStat) eStat.textContent='已選：尚未選擇';
+
+    // 滑桿歸 50 並重繪半邊色
+    [['rBeauty','beauty'],['rHeight','height'],['rWeight','weight']].forEach(([id,key])=>{
+      const el=document.getElementById(id);
+      if(el){ el.value=50; paintRange(el); }
+    });
+  }
+
+  // 初始顯示
+  show(1);
+</script>
+</body>
+</html>
