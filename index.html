@@ -324,15 +324,31 @@
     </div>
   </section>
 
-  <!-- s11 警告 / 背景：圖三 -->
+  <!-- s11 結束 / 背景：圖三 -->
   <section id="s11" class="stage bg-3">
     <div class="bubble center">
-      <div class="stack t-center">
-        <div class="warn-title">⚠ 警告：後果自負 ⚠</div>
-        <div class="warn-sub">完美只是一瞬，未來無法掌控。</div>
-        <div class="spacer"></div>
-        <!-- ★完整重置並回首頁 -->
-        <div class="cta"><button class="btn btn-danger" onclick="resetAll(); go(1)">結束</button></div>
+      <div class="stack t-center" style="margin-top:-40px;">  <!-- ★整組上移 -->
+
+        <!-- ★標題 -->
+        <div class="t-big-white-glow" style="font-size:32px; margin-bottom:20px;">
+          記錄胚胎的成長吧：
+        </div>
+
+        <!-- ★置中圖片（1:1） -->
+        <div style="flex:1; display:flex; align-items:center; justify-content:center;">
+          <img src="QR.jpg"
+               alt="QR"
+               style="width: min(55vw, 260px);   /* ★縮小一點 */
+                      aspect-ratio: 1 / 1;
+                      border-radius: 16px;
+                      object-fit: cover;">
+        </div>
+
+      </div>
+
+      <!-- ★保留底部 CTA（結束鍵） -->
+      <div class="cta">
+        <button class="btn btn-danger" onclick="resetAll(); go(1)">結束</button>
       </div>
     </div>
   </section>
